@@ -27,7 +27,8 @@ namespace Microsoft.DotNet.GitHub.IssueLabeler
                 Configuration["RepoName"],
                 Configuration["SecretUri"],
                 double.Parse(Configuration["Threshold"]),
-                diffHelper);
+                diffHelper,
+                skipAzureKeyVault: true);
             services.AddMvc();
 
             services.AddSingleton(labeler)

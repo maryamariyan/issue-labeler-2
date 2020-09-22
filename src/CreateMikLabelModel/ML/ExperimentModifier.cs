@@ -24,7 +24,7 @@ namespace CreateMikLabelModel.ML
                 // NOTE: depending on how the data changes over time this might need to get updated too.
                 columnInformation.TextColumnNames.Add("Title");
                 columnInformation.TextColumnNames.Add("Description");
-                columnInformation.IgnoredColumnNames.Add("IssueAuthor");
+                columnInformation.CategoricalColumnNames.Add("IssueAuthor");
                 columnInformation.IgnoredColumnNames.Add("IsPR");
                 columnInformation.IgnoredColumnNames.Add("NumMentions");
                 columnInformation.IgnoredColumnNames.Add("UserMentions");
@@ -35,21 +35,31 @@ namespace CreateMikLabelModel.ML
                     columnInformation.CategoricalColumnNames.Add("Files");
                     columnInformation.CategoricalColumnNames.Add("FolderNames");
                     columnInformation.CategoricalColumnNames.Add("Folders");
-                    columnInformation.IgnoredColumnNames.Add("FileExtensions");
-                    columnInformation.IgnoredColumnNames.Add("Filenames");
+                    columnInformation.CategoricalColumnNames.Add("FileExtensions");
+                    columnInformation.TextColumnNames.Add("Filenames");
                 }
             };
 
             TrainerSetup = (trainers) =>
             {
+                // Clearing all trainers and only selecting some.
                 trainers.Clear();
                 if (forPrs)
+                {
                     trainers.Add(MulticlassClassificationTrainer.FastTreeOva);
+                    trainers.Add(MulticlassClassificationTrainer.FastForestOva);
+                    trainers.Add(MulticlassClassificationTrainer.LinearSupportVectorMachinesOva);
+
+                }
                 else
-                    trainers.Add(MulticlassClassificationTrainer.SdcaMaximumEntropy);
+                {
+                    trainers.Add(MulticlassClassificationTrainer.LightGbm);
+                    trainers.Add(MulticlassClassificationTrainer.LbfgsMaximumEntropy);
+                    trainers.Add(MulticlassClassificationTrainer.LinearSupportVectorMachinesOva);
+                }
             };
 
-            ExperimentTime = 300;
+            ExperimentTime = 3000;
             LabelColumnName = "Area";
             ForPrs = forPrs;
             Paths = paths;

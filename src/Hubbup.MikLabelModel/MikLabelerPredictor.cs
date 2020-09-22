@@ -40,7 +40,7 @@ namespace Hubbup.MikLabelModel
                     Description = issue.Body,
                     IsPR = 0,
                     Author = issue.User.Login,
-                    UserMentions = string.Join(' ', userMentions),
+                    UserMentions = 0.0f,
                     NumMentions = userMentions.Length,
                 };
                 var prediction = _predictionEngine.Predict(aspnetIssue);
@@ -56,7 +56,7 @@ namespace Hubbup.MikLabelModel
                     Description = issue.Body,
                     IsPR = 1,
                     Author = issue.User.Login,
-                    UserMentions = string.Join(' ', userMentions),
+                    UserMentions = 0.0f,
                     NumMentions = userMentions.Length,
                     FileCount = filePaths.Length,
                     Files = string.Join(' ', segmentedDiff.FileDiffs),

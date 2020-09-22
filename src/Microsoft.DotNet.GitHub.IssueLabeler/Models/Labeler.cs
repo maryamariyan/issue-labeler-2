@@ -259,7 +259,7 @@ namespace Microsoft.DotNet.GitHub.IssueLabeler
                 Description = body,
                 IsPR = 0,
                 Author = author,
-                UserMentions = string.Join(' ', userMentions),
+                UserMentions = 0.0f,
                 NumMentions = userMentions.Length
             };
         }
@@ -273,7 +273,7 @@ namespace Microsoft.DotNet.GitHub.IssueLabeler
                 Description = body,
                 IsPR = 1,
                 Author = author,
-                UserMentions = string.Join(' ', userMentions),
+                UserMentions = 0.0f,
                 NumMentions = userMentions.Length,
             };
             IReadOnlyList<PullRequestFile> prFiles = await _client.PullRequest.Files(RepoOwner, RepoName, number);

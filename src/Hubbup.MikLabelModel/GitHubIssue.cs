@@ -5,6 +5,7 @@
 #pragma warning disable 649 // We don't care about unsused fields here, because they are mapped with the input file.
 
 using Microsoft.ML.Data;
+using System;
 
 namespace Hubbup.MikLabelModel
 {
@@ -53,7 +54,7 @@ namespace Hubbup.MikLabelModel
         public float IsPR;
 
         [LoadColumn(7)]
-        public string UserMentions;
+        public Single UserMentions;
 
         [LoadColumn(8)]
         public float NumMentions;

@@ -34,7 +34,7 @@ namespace Microsoft.DotNet.GitHub.IssueLabeler
         public float IsPR;
 
         [LoadColumn(7)]
-        public string UserMentions;
+        public Single UserMentions;
 
         [LoadColumn(8)]
         public float NumMentions;
