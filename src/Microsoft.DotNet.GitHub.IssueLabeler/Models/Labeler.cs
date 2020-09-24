@@ -188,6 +188,12 @@ namespace Microsoft.DotNet.GitHub.IssueLabeler
             return labelSuggestion;
         }
 
+        private HashSet<(string, string)> _reposWithNoPRLabeler = new HashSet<(string, string)>()
+        {
+            ("dotnet", "dotnet-api-docs"),
+            ("microsoft", "service-fabric")
+        };
+
         internal async Task<List<string>> PredictLabelAsync(int number, GithubObjectType issueOrPr, ILogger logger, bool canCommentOnIssue = false)
         {
             if (_client == null)
@@ -203,8 +209,7 @@ namespace Microsoft.DotNet.GitHub.IssueLabeler
 
             List<string> labels = new List<string>();
             LabelSuggestion labelSuggestion = null;
-            if (issueOrPr == GithubObjectType.Issue ||
-                RepoOwner.Equals("microsoft", StringComparison.OrdinalIgnoreCase) && RepoName.Equals("service-fabric", StringComparison.OrdinalIgnoreCase))
+            if (issueOrPr == GithubObjectType.Issue || _reposWithNoPRLabeler.Contains((RepoOwner, RepoName)))
             {
                 IssueModel issue = CreateIssue(number, iop.Title, iop.Body, userMentions, iop.User.Login);
                 labelSuggestion = Predictor.Predict(RepoOwner, RepoName, issue, logger, _threshold);

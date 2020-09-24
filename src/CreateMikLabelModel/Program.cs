@@ -14,19 +14,22 @@ namespace CreateMikLabelModel
     {
         private static readonly (string owner, string repo)[][] Repos = new[]
         {
+            // new[] {
+            //  ("dotnet", "aspnetcore"),   // first item is the target Repo
+            // },
+            // new[] {
+            //  ("dotnet", "extensions"),
+            // },
             new[] {
-                ("dotnet", "aspnetcore"),   // first item is the target Repo
+               ("dotnet", "dotnet-api-docs")
             },
-            new[] {
-                ("dotnet", "extensions"),
-            },
-            new[] {
-                ("dotnet", "runtime"),      // first item is the target Repo
-                ("dotnet", "extensions"),   // the rest are archived repositories
-                ("dotnet", "corefx"),
-                ("dotnet", "coreclr"),
-                ("dotnet", "core-setup"),
-            }
+            //  new[] {
+            //    ("dotnet", "runtime"),      // first item is the target Repo
+            //  ("dotnet", "extensions"),   // the rest are archived repositories
+            //  ("dotnet", "corefx"),
+            //  ("dotnet", "coreclr"),
+            //  ("dotnet", "core-setup"),
+            //  }
         };
 
         private static async Task<int> Main()
@@ -48,7 +51,7 @@ namespace CreateMikLabelModel
                 var dm = new DatasetModifier(targetRepo: repoCombo[0].repo);
                 Console.WriteLine($"Reading input TSV {issueFiles.InputPath}...");
                 await DatasetHelper.PrepareAndSaveDatasetsForIssuesAsync(issueFiles, dm);
-                await DatasetHelper.PrepareAndSaveDatasetsForPrsAsync(prFiles, dm);
+                // await DatasetHelper.PrepareAndSaveDatasetsForPrsAsync(prFiles, dm);
 
                 // 3. Train data and use *-final-model.zip in the deployed app.
                 var mlHelper = new MLHelper();
@@ -56,12 +59,12 @@ namespace CreateMikLabelModel
                 Console.WriteLine($"First train issues");
                 mlHelper.Train(issueFiles, forPrs: false);
 
-                Console.WriteLine($"Next to train PRs");
-                mlHelper.Train(prFiles, forPrs: true);
+                // Console.WriteLine($"Next to train PRs");
+                // mlHelper.Train(prFiles, forPrs: true);
 
                 // 4. Optionally call mlHelper.Test(..) API to see how the intermediate model (*-fitted-model.zip) is behaving on the test data (the last 10% of downloaded issue/PRs).
                 mlHelper.Test(issueFiles, forPrs: false);
-                mlHelper.Test(prFiles, forPrs: true);
+                // mlHelper.Test(prFiles, forPrs: true);
 
                 Console.WriteLine(new string('-', 80));
                 Console.WriteLine();
