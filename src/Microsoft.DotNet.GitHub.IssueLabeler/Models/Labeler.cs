@@ -26,6 +26,7 @@ namespace Microsoft.DotNet.GitHub.IssueLabeler
         private readonly double _threshold;
         private readonly string _secretUri;
         private readonly bool _skipAzureKeyVault;
+        private readonly Regex _regexIssueMatch;
         private readonly DiffHelper _diffHelper;
         private readonly string MessageToAddDoc =
             "Note regarding the `new-api-needs-documentation` label:" + Environment.NewLine + Environment.NewLine +
@@ -50,6 +51,7 @@ namespace Microsoft.DotNet.GitHub.IssueLabeler
             _secretUri = secretUri;
             _diffHelper = diffHelper;
             _skipAzureKeyVault = skipAzureKeyVault;
+            _regexIssueMatch = new Regex(@"[Ff]ix(?:ed|es|)( )+#(\d+)"); // class PrototypeLabelingWork
         }
 
         private async Task GitSetupAsync()
@@ -184,9 +186,25 @@ namespace Microsoft.DotNet.GitHub.IssueLabeler
                 {
                     logger.LogInformation($"! PR number {number} should be a documentation PR as it adds lines to a ref *cs file.");
                 }
+                Match match = _regexIssueMatch.Match(iop.Body);
+                if (match.Success && int.TryParse(match.Groups[2].Value, out int issueNumber))
+                {
+                    string labelHint = await IssueAreaLabelForPrAsync(issueNumber);
+                    if (!string.IsNullOrEmpty(labelHint))
+                    {
+                        logger.LogInformation($"! PR number {number} fixes issue number {issueNumber} with area label {labelHint}.");
+                    }
+                }
             }
             return labelSuggestion;
         }
+
+        private HashSet<(string, string)> _reposWithNoPRLabeler = new HashSet<(string, string)>()
+        {
+            // repos with no PR models
+            ("dotnet", "dotnet-api-docs"),
+            ("microsoft", "service-fabric")
+        };
 
         internal async Task<List<string>> PredictLabelAsync(int number, GithubObjectType issueOrPr, ILogger logger, bool canCommentOnIssue = false)
         {
@@ -203,8 +221,7 @@ namespace Microsoft.DotNet.GitHub.IssueLabeler
 
             List<string> labels = new List<string>();
             LabelSuggestion labelSuggestion = null;
-            if (issueOrPr == GithubObjectType.Issue ||
-                RepoOwner.Equals("microsoft", StringComparison.OrdinalIgnoreCase) && RepoName.Equals("service-fabric", StringComparison.OrdinalIgnoreCase))
+            if (issueOrPr == GithubObjectType.Issue || _reposWithNoPRLabeler.Contains((RepoOwner, RepoName)))
             {
                 IssueModel issue = CreateIssue(number, iop.Title, iop.Body, userMentions, iop.User.Login);
                 labelSuggestion = Predictor.Predict(RepoOwner, RepoName, issue, logger, _threshold);
@@ -229,6 +246,17 @@ namespace Microsoft.DotNet.GitHub.IssueLabeler
                         labels.Add("mono-mirror");
                     }
                 }
+                Match match = _regexIssueMatch.Match(iop.Body);
+                if (match.Success && int.TryParse(match.Groups[2].Value, out int issueNumber))
+                {
+                    string labelHint = await IssueAreaLabelForPrAsync(issueNumber);
+                    if (!string.IsNullOrEmpty(labelHint))
+                    {
+                        logger.LogInformation($"! PR number {number} fixes issue number {issueNumber} with area label {labelHint}.");
+                        labels.Add(labelHint);
+                    }
+                    return labels;
+                }
             }
 
             var topChoice = labelSuggestion.LabelScores.OrderByDescending(x => x.Score).First();
@@ -241,10 +269,13 @@ namespace Microsoft.DotNet.GitHub.IssueLabeler
             else if (topChoice.Score < _threshold)
             {
                 logger.LogInformation($"! The Model was not able to assign the label to the {issueOrPr} {number} confidently.");
+                if (!topChoice.LabelName.Equals("area-System.Net"))
+                {
+                    labels.Add(topChoice.LabelName);
+                }
             }
             else
             {
-                
                 labels.Add(topChoice.LabelName);
             }
             return labels;
@@ -288,7 +319,7 @@ namespace Microsoft.DotNet.GitHub.IssueLabeler
                 pr.FolderNames = _diffHelper.FlattenWithWhitespace(segmentedDiff.FolderNames);
                 try
                 {
-                    pr.ShouldAddDoc = await prAddsNewApi(pr.Number);
+                    pr.ShouldAddDoc = await PrAddsNewApi(pr.Number);
                 }
                 catch (Exception ex)
                 {
@@ -300,7 +331,7 @@ namespace Microsoft.DotNet.GitHub.IssueLabeler
             return pr;
         }
 
-        internal async Task<bool> prAddsNewApi(int prNumber)
+        internal async Task<bool> PrAddsNewApi(int prNumber)
         {
             if (_client == null)
             {
@@ -312,6 +343,19 @@ namespace Microsoft.DotNet.GitHub.IssueLabeler
             response.EnsureSuccessStatusCode();
             var content = await response.Content.ReadAsStringAsync();
             return TakeDiffContentReturnMeaning(content.Split("\n"));
+        }
+
+        internal async Task<string> IssueAreaLabelForPrAsync(int issueNumber)
+        {
+            if (_client == null)
+            {
+                await GitSetupAsync();
+            }
+            var issue = await _client.Issue.Get(RepoOwner, RepoName, issueNumber);
+            return issue?.Labels?
+                .Where(x => !string.IsNullOrEmpty(x.Name))
+                .Select(x => x.Name)
+                .Where(x => x.StartsWith("area-")).FirstOrDefault();
         }
 
         private enum DiffContentLineReadingStatus
